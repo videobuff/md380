@@ -1,354 +1,349 @@
 #!/bin/bash
 ##################################################################################
 ##################################################################################
-###### SCRIPT TO FLASH A TYTERA MD380 WITH THE EXPERIMENTAL SOFTWARE        ######
-###### 				FROM  TRAVISGODSPEED - KK4VCZ							######
-###### 	LOCATED AT https://github.com/travisgoodspeed/md380tools.git		######
-###### 					   REVISION 29-08-2016   - Written by PA0ESH     	######
-###### 	   You may copy, modify or change this script as you like		    ######
+###### SCRIPT TO FLASH A TYTERA MD380/MD390 WITH THE EXPERIMENTAL SOFTWARE  ######
+###### 	 		FROM  TRAVISGODSPEED - KK4VCZ	    		    ######
+###### 	  LOCATED AT https://github.com/travisgoodspeed/md380tools.git	    ######
+###### 		REVISION 26-11-2016   - Written by PA0ESH     	            ######
+###### 	   	You may copy, modify or change this script as you like	    ######
+######		  # Requires: whiptail					    ######
 ##################################################################################
 ##################################################################################
 #
+
+directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+script_rev="3.0"
+script_date="27-11-2016"
+script_ver_file="version-md380.txt"
+script_file="flash-md380.sh"
+pi_user_own=$(whoami)
+pi_user="MD380 Experimental firmware - Current Linux user: ${pi_user_own} - Working dir :${directory} - Rev: ${script_rev} - dated: ${script_date}"
+M_title="MD380-tools installer - ${script_rev} - Dated: ${script_date}"
+
+
+declare -a jessie=('gcc-arm-none-eabi' 'binutils-arm-none-eabi' 'libnewlib-arm-none-eabi' 'libusb-1.0-0' 'python-usb' 'python-pip' 'unzip' 'make' 'curl' 'git')
+declare -a xenial=('gcc-arm-none-eabi' 'binutils-arm-none-eabi' 'libnewlib-arm-none-eabi' 'libusb-1.0-0-dev' 'python-usb' 'python-pip' 'curl' 'git')
+declare -a stretch=('gcc-arm-none-eabi' 'binutils-arm-none-eabi' 'libnewlib-arm-none-eabi' 'libusb-1.0-0-dev' 'python-usb' 'make' 'curl' 'git')
+
+
+function test_jessie {
+clear
+apt-get update
+echo "Installation of pre requisite  packages for Ubuntu distro: $distro"
+for item in ${jessie[*]}
+do
+    check_package $item
+done
+pip install pyusb -U # update PyUSB to 1.0
+}
+
+function test_xenal {
+clear
+apt-get update
+echo "Installation of pre requisite  packages for linux distro: $distro"
+for item in ${xenial[*]}
+do
+    check_package $item
+done
+
+}
+function test_stretch {
+clear
+apt-get update
+echo "updating the package for Debianb distro: $distro"
+for item in ${stretch[*]}
+do
+    check_package $item
+done
+
+}
+
+#Check first of all if user is root
+
+function check_package {
+#pack_name="git"
+pack_name=$1
+ss1=$(dpkg-query -W -f='${Status} \n'  $pack_name)
+rep1==$(echo $ss1 | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
+
+rep2="=installokinstalled"
 #
-# Requires: whiptail
-# 29th August 2016 - PA0ESH
-# Color Codes
-Reset='\e[0m'
-Red='\e[31m'
-Green='\e[30;42m' # Black/Green
-Yellow='\e[33m'
-YelRed='\e[31;43m' #Red/Yellow
-Blue='\e[34m'
-White='\e[37m'
-BluW='\e[37;44m'
-
-
-function check_jessie {
-rm -rf tmp.file >/dev/null
-lsb_release -a >tmp.file
-
-result=$(grep -c jessie tmp.file)
-
-if [ $result >0 ] 
-then
-			whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox "This Raspberry runs Debian Jessie so you may continue" 8 60
-
+#echo "---------------------------------------------"
+if [ "$rep1" != "${rep2}" ] 
+		then
+ 		echo "Installing package $pack_name"
+		echo "---------------------------------------------"
+		apt-get install $packname
 else
-			whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox "This Raspberry does NOT run Debian Jessie.\nUse a fresh formatted sd card with the latest Debian Jessie (www.raspberry.org).\n The programme will stop now." 8 60
-			break
-			exit
+	 echo " ${pack_name} already installed."		
 fi
-}
 
-pause(){
-   read -p "Press any key to continue"
 }
 
 
-function do_flash_sw {
-# routine to flash the software only
-if [ ! -d /home/pi/md380tools ] ; then
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox " You have to install the tools first \n Choose the 2nd option from the main menu\n Hit OK to continue." 12 78
-else
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox " Please switch on the MD380 in DFU mode. \n Press the PTT button and the button above together,\n and switch on the MD380.\n The red light should be flashing\n Then hit OK to continue." 12 78
-	cd /home/pi/md380tools
-	git pull
-	##### turn on radio in DFU mode to begin firmware update with USB cable ######
-	clear
-	sudo make all flash
+
+
+function check_distro {
+result=$(dpkg --status tzdata|grep Provides|cut -f2 -d'-')
+distro=$(echo $result | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
+
+if [ ${distro} == "jessie" ]; then
+	whiptail --backtitle "${pi_user}" --title "Linux Debian - ${distro} for Raspberry" --msgbox "Testing availability or installing the pre-requisite packages\n\
+	required for this distro : ${distro}\n\
+	This may take some time, so please be patient and watch out for errors." 8 60
+	test_jessie
+elif  [ ${distro} == "xenial" ]; then
+	whiptail --backtitle "${pi_user}" --title "Linux Ubuntu - ${distro}" --msgbox "Testing availability or installing the pre-requisite packages\n\
+	This may take some time, so please be patient and watch out for errors." 8 60
+	test_xenal
+elif  [ ${distro} == "stretch" ]; then
+	whiptail --backtitle "${pi_user}" --title "Linux Debian - ${distro}" --msgbox "Testing availability or installing the pre-requisite packages\n\
+	This may take some time, so please be patient and watch out for errors." 8 60
+	test_stretch
 	
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox "The MD380 has been loaded with the new experimental software\nYour codeplug remains unchanged\nSwitch off the MD380 now to exit the DFU mode.\n Hit OK to continue." 8 78
-fi
-}
-
-function do_flash_db {
-# routine to flash the software only
-if [ ! -d /home/pi/md380tools ] ; then
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox " You have to install the tools first \n Choose the 2nd option from the main menu\n Hit OK to continue." 8 78
 else
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox " Please switch on the MD380 in normal mode. \n The red light should NOT be flashing\nThen hit OK to continue." 8 78
-	cd /home/pi/md380tools
-	
-	clear
-	git pull
-	sudo make clean
-	##### turn on radio in DFU mode to begin firmware update with USB cable ######
-	sudo make flashdb
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox "The MD380 has been loaded with the complete DMR user database\nYour own codeplug remains unchanged.\n Hit OK to continue." 8 78
+	whiptail --backtitle "${pi_user} - not suitable" --title "Linux distro - ${distro}" --msgbox "The OS on this machine is not (yet) suitable for the MD380/390 tools..." 8 60
+exit 1
 fi
+sleep 2
 }
 
-function do_flash_original {
-# routine to flash the software only
-if [ ! -d /home/pi/md380tools ] ; then
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox " You have to install the tools first \n Choose the 2nd option from the main menu\n Hit OK to continue." 8 78
-else
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox " Please switch on the MD380 in DFU mode. \n Press the PTT button and the button above together,\n and switch on the MD380.\n The red light should be flashing\n Then hit OK to continue." 12 78
-	cd /home/pi/md380tools
-	clear
-	git pull
-	sudo make clean
-	##### turn on radio in DFU mode to begin firmware update with USB cable ######
-	make flash_d02.032
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox "The MD380 has been loaded with the original firmware version d02.32\nYour own codeplug remains unchanged.\n Hit OK to continue." 8 78
-fi
-}
-
-
-function raspiupdate {
-clear
-echo "running Raspberry update & upgrade"
-echo -e "\t \e[030;42m Updating Debian Jessie package List... \t ${Reset}"
-echo -e "\t${YelRed} This may take a while ${Reset}"
-sudo apt-get update
-echo -e "\t \e[030;42m Upgrading Debian Jessie package List... \t ${Reset}"
-echo -e "\t${YelRed} This may take even longer ${Reset}"
-# dpkg -P --force-all nfs-common > /dev/null
-sudo apt-get -y dist-upgrade
-clear
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380-tools Basic installation - ver 1.10 dd: 06092016" --msgbox "The Raspberry will now reboot\n Hit OK to continue." 8 78
-sudo reboot
-return
-}
 
 function MD380-tools_install {
 clear
+check_distro
 echo "Installing the MD380 python toolkit"
 echo -e "\t${YelRed} This may take a while ${Reset}"
-cd /home/pi
-if [ ! -d /home/pi/md380tools ] ; then
+if [ ! -d $directory/md380tools ] ; then
 #echo "Directory does not exist"
-			whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox " This may take some time, so relax.\n Hit OK to continue." 8 45
-			git clone https://github.com/travisgoodspeed/md380tools			
+			whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " This may take some time, so relax.\n Hit OK to continue." 8 45
+			git clone https://github.com/travisgoodspeed/md380tools
 			if [ ! -f /etc/udev/rules.d/99-md380.rules ]
 			then
-				cp /home/pi/md380tools/99-md380.rules  /etc/udev/rules.d
+				cp $directory/md380tools/99-md380.rules  /etc/udev/rules.d
 			fi
-			cd /home/pi/md380tools
+			#cd $directory/md380tools
 			make clean
 			make all
+			echo "geklooned"
+			pause
 else
 #echo "Directory exists"
-			whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox " This may take some time, so relax.\n Hit OK to continue." 8 45
-			cd /home/pi/md380tools
+			whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " This may take some time, so relax.\n Hit OK to continue." 8 45
+			cd $directory/md380tools
 			git pull
 			if [ ! -f /etc/udev/rules.d/99-md380.rules ]
 				then
-				cp /home/pi/md380tools/99-md380.rules  /etc/udev/rules.d
+				cp $directory/md380tools/99-md380.rules  /etc/udev/rules.d
 			fi
 
-			cd /home/pi/md380tools
+			cd $directory/md380tools
 			make clean
 			make all
-fi	
+			echo "ge-updated"
+fi
+
 #echo -e "${Green} Installation or updating git repository md380tools completed ${Reset}"
 return
 }
 
-do_root() {
-whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --yesno " You are not logged in as root.\n This utility only works with the user root.\n Would you like to change to root now?\n\n If yes, the script will restart as root. !" 20 60 2
-if [ $? -eq 0 ]; then # yes
-	sync
-	sudo /home/pi/flash-md380.sh
+#functions to flash the md380/390 with user data
+function do_flash_db-eu {
+# routine to flash the software only
+if [ ! -d $directory/md380tools ] ; then
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " You have to install the tools first \n Choose the 6th option from the main menu\n Hit OK to continue." 8 78
+else
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " Please switch on the MD380/390 in normal mode. \n The red light should NOT be flashing\nThen hit OK to continue.\nThis proces may take some time ! Be patient!" 16 78
+	cd $directory/md380tools
+
+	clear
+	git pull
+	make clean
+	##### turn on radio in DFU mode to begin firmware update with USB cable ######
+	make updatedb_eur flashdb
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "The MD380 has been loaded with the DMR user database according to EU privacy laws \nYour own codeplug remains unchanged." 8 78
 fi
-exit 0
 }
 
+function do_flash_db-row {
+# routine to flash the software only
+if [ ! -d $directory/md380tools ] ; then
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " You have to install the tools first \n Choose the 6th option from the main menu\n Hit OK to continue." 8 78
+else
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " Please switch on the MD380/390 in normal mode. \n The red light should NOT be flashing.\nThen hit OK to continue.\nThis process may take some time. Be Patient!" 16 78
+	cd $directory/md380tools
 
-do_finish() {
-whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --yesno "Would you like to reboot the Raspberry PI now?" 20 60 2
-if [ $? -eq 0 ]; then # yes
-	sync
-	sudo reboot
+	clear
+	git pull
+	make clean
+	##### turn on radio in DFU mode to begin firmware update with USB cable ######
+	make updatedb flashdb
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "The MD380 has been loaded with the DMR user database according to R.O.T.W laws \nYour own codeplug remains unchanged.\n Hit OK to continue." 8 78
 fi
-exit 0
 }
 
-pause(){
-   read -p "Press any key to continue"
+#functions to flash the experimental firmware - eith with or without GPS
+function do_flash_sw-no-gps {
+# routine to flash the software only
+clear
+if [ ! -d $directory/md380tools ] ; then
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " You have to install the tools first \n This will be done now\n Hit OK to continue." 12 78
+	MD380-tools_install
+else
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " Please switch on the MD380/390 in DFU mode. \n Press the PTT button and the button above together,\n and switch on the MD380/390.\n The red light should be flashing\n Then hit OK to continue." 12 78
+	cd $directory/md380tools
+	git pull
+	##### turn on radio in DFU mode to begin firmware update with USB cable ######
+	clear
+	make clean
+	make flash
+
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "The MD380 has been loaded with the new experimental software\nYour codeplug remains unchanged\nSwitch off the MD380 now to exit the DFU mode.\n Hit OK to continue." 8 78
+fi
 }
 
-pi_user=$(whoami)
-pi_user=" - CURRENT USER: ${pi_user}"
+function do_flash_sw-yes-gps {
+clear
+# routine to flash the software only
+if [ ! -d $directory/md380tools ] ; then
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " You have to install the tools first \n This will be done now\n Hit OK to continue." 12 78
+	MD380-tools_install
+else
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " Please switch on the MD380/390 in DFU mode. \n Press the PTT button and the button above together,\n and switch on the MD380/390.\n The red light should be flashing\n Then hit OK to continue." 12 78
+	cd $directory/md380tools
+	git pull
+	##### turn on radio in DFU mode to begin firmware update with USB cable ######
+	clear
+	make flash_S13
 
-whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --yesno "This script installs Travis Goodspeed, KK4VCZ MD380 tools on a Raspberry \n\
-Source code at https://github.com/travisgoodspeed/md380tools.git \n\
-Use this tool at your own risk  \n  \nMake sure the MD380 is connected with the programming cable to the Raspberry, but NOT switched on!" --yes-button "Continue" --no-button "Abort" 12 80
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "The MD380 has been loaded with the new experimental software\nYour codeplug remains unchanged\nSwitch off the MD380 now to exit the DFU mode.\n Hit OK to continue." 8 78
+fi
+}
+
+
+function check_update_script {
+rm -rf ${script_ver_file}
+wget http://www.pa0esh.nl/svn/md380/$script_ver_file >> /dev/null
+#sudo chmod +x $script_ver_file
+#sudo sed -i -e 's/\r$//' $script_ver_file
+read -d $'\x04' name < "$script_ver_file" 
+new_date=$name
+if [ "$new_date" == "$script_date" ] 
+then
+		whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "No new script available\nThe current is dated: $new_date  - Rev: $script_rev." 8 78
+		sudo rm -rf "$script_ver_file"
+else
+        if (whiptail --backtitle "${pi_user}" --title "$M_title" --yes-button "Update" --no-button "No, Thanks"  --yesno " There is an update of this script available for download.\n Current version dated: $script_date \n New version    : $new_date" 10 60) then
+    	echo "You choose to update the script. It will restart it after the download is completed -  $?."
+    	#sudo chmod -x $script_ver_file
+    	sudo rm -rf $script_file
+        sudo wget http://www.pa0esh.nl/svn/md380/$script_file >> /dev/null
+		sudo chmod +x *.sh
+		sed -i -e 's/\r$//' $script_file
+		sync
+		sudo ./$script_file
+		fi
+fi
+}
+
+# main part of the script
+
+clear
+#routine to check that user is root, and if not change to root with consent of user
+#
+if [[ $EUID -ne 0 ]]; then
+	whiptail --backtitle "${pi_user}" --title "$M_title" --yesno " You are not logged in as root.\n This script only works with user root.\n Would you like to change to root now?\n\n If yes, the script will restart as root. !" 10 60 2
+	if [ $? -eq 0 ]; then # yes
+		sync
+		sudo ./$script_file
+	else
+	clear
+	echo "you stopped the script because you did not want to run it as root"
+	exit 1
+	fi
+fi	
+
+
+whiptail --backtitle "${pi_user}" --title "$M_title" --yesno "This script installs Travis Goodspeed, KK4VCZ MD380 tools on\n\
+a Raspberry  or Ubuntu machine. Source code at https://github.com/travisgoodspeed/md380tools.git \n\
+The script has been tested on the folowing distro;s: Ubuntu stretch, Debian Jessie (Raspberry) en Debian Xenal.\n\
+Use this tool at your own risk !!! \n  \nMake sure the MD380/390 is connected with the programming cable to an USB port of the machine, but NOT switched on!" --yes-button "Continue" --no-button "Abort" 16 80
 exitstatus=$?
 if [ $exitstatus = 0 ]; then
-	sleep 0 
+	sleep 0
 else
 	echo -e "${YelRed} Installation aborted. ${Reset}"
     exit
 fi
 
-# Make sure only root can run our script
-if [[ $EUID -ne 0 ]]; then
-clear && do_root
-     exit
-fi
+whiptail --backtitle "${pi_user}" --title "$M_title" --yesno --defaultno "You accept the risks of something going wrong when using this tool ?\nYou know how to put the MD380 in DFU mode?\nAre you ready to start with the MD380 toolbox ?" 16 60
 
-
-function update_raspberry {
-clear
-echo "Updating the packages list....."
-sudo apt-get update
-sudo -y apt-get upgrade
-sudo -y apt-get dist-upgrade
-
-}
-
-
-function pre_package {
-clear
-echo "testing if pre-requisite packages are installed"
-
-result=$(dpkg-query -W -f='${Status} \n'  git)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing git software required to obtain the source code."
-    sudo apt-get -y install git
-fi
-
-result=$(dpkg-query -W -f='${Status} \n'  whiptail)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing whiptail package"
-    sudo apt-get -y install whiptail
-fi
-
-result=$(dpkg-query -W -f='${Status} \n'  gcc-arm-none-eabi)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing gcc-arm-none-eabi package"
-    sudo apt-get -y install gcc-arm-none-eabi
-fi
-
-result=$(dpkg-query -W -f='${Status} \n'  gcc-arm-none-eabi)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing gcc-arm-none-eabi package."
-    sudo apt-get -y install gcc-arm-none-eabi
-fi
-
-result=$(dpkg-query -W -f='${Status} \n'  binutils-arm-none-eabi)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing binutils-arm-none-eabi package."
-    sudo apt-get -y install binutils-arm-none-eabi
-fi
-
-result=$(dpkg-query -W -f='${Status} \n'  libusb-1.0-0)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing libusb-1.0-0 package."
-    sudo apt-get -y install libusb-1.0-0
-fi
-
-
-result=$(dpkg-query -W -f='${Status} \n'  libnewlib-arm-none-eabi)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing libnewlib-arm-none-eabi package."
-    sudo apt-get -y install libnewlib-arm-none-eabi
-fi
-
-
-result=$(dpkg-query -W -f='${Status} \n'  python-usb)
-if [ "$result" != "install ok installed " ]
-then
-	clear
-	echo "installing git software required to obtain the source code."
-    sudo apt-get -y install python-usb
-fi
-
-pip install pyusb -U
-
-clear
-
-}
-
-whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --yesno --defaultno "You accept the risks of something going wrong when using this tool ?\nYou know how to put the MD380 in DFU mode?\nAre you ready to start with the MD380 toolbox ?" 16 60
- 
 exitstatus=$?
+
 if [ $exitstatus = 0 ]; then
     status="0"
-    while [ "$status" -eq 0 ]  
+    while [ "$status" -eq 0 ]
     do
-        choice=$(whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --menu "Make a choice" 22 80 10 \
-		"Raspberry OS Check" "test for correct OS system (Jessie)" \
-		"Pre-requisite check" "Test if pre-requisite packages are installed" \
-		"RPI update/upgrade" "Bring Raspberry OS to the latest updates" \
-		"RPI reboot" "Reboot the Raspberry" \
-		"Update firmware RPI" "Update Rspberry's firmware" \
-		"MD380-tools" "Update tools or 1ste time installation" \
-		"MD380-SW" "flash software" \
-		"MD380-DB" "flash user database" \
-		"MD380-ORG" "info on flashing original firmware"  3>&2 2>&1 1>&3) 
-         
+        choice=$(whiptail --backtitle "${pi_user}" --title "$M_title" --menu "Make a choice" 22 80 14 \
+		"Check script" "Check for a new version of this script" \
+		"Linux Update" "Update the Operating System on this machine" \
+		"MD380-tools" "MD380 tools 1st time installation." \
+		"MD380-SW-NO-GPS" "flash software MD380 No GPS" \
+		"MD380-SW-YES-GPS" "flash software MD380 with GPS" \
+		"MD380-DB-EU" "flash user database EU privacy law" \
+	    "MD380-DB-ROW" "flash user database ROW privacylaw" \
+		"MD380-ORG" "info on flashing original firmware"  3>&2 2>&1 1>&3)
+
         # Change to lower case and remove spaces.
         option=$(echo $choice | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
         case "${option}" in
-            updatefirmwarerpi)
+            checkscript)
+            #whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "See if there is a new script available" 8 60			
+			check_update_script
+			;;
+            linuxupdate)
         	clear
-        	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --yesno "Would you like to flash the Raspberry PI (not the MD380 !!!) with new firmware ?" 20 60 2
-			if [ $? -eq 0 ]; then # yese
-			clear
-	   		rpi-update
-	   		fi
+        	if (whiptail --backtitle "${pi_user}" --title "$M_title" --yesno "The script will now update the operating system on this machine ?\n\Would you like to reboot afterwards and login again?" 20 60 2) then
+    			apt-get update && apt-get -y dist-upgrade && reboot
+			else
+    			apt-get update && apt-get -y dist-upgrade
+			fi
             ;;
-            rpireboot)
-            do_finish
-            ;;
-          raspberryoscheck)
-            check_jessie
-            ;;
-            pre-requisitecheck)
-            pre_package
-            whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox "All pre-requiste packags are installed and up-to-date" 8 60
-            ;;  
-            rpiupdate/upgrade)
-            clear
-            apt-get update
-            clear
-            apt-get -y upgrade
-            clear
-            apt-get -y dist-upgrade
-            sudo apt-get clean
-            clear
-            apt-get -y rpipugrade
-            ;;         
             md380-tools)
             MD380-tools_install
-                whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox "MD380 tools installed or updated" 8 60
-            ;;           
-            md380-sw)
-            do_flash_sw
-                whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox "Flashing MD380 software completed" 8 60
+                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "MD380 tools installed for 1st time or updated" 8 60
             ;;
-           md380-db)
-            do_flash_db
-                whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox "Flashing MD380 user database completed" 8 60
+            md380-sw-no-gps)
+            do_flash_sw-no-gps
+                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 with NO GPS firmware completed" 8 60
+            ;;
+            md380-sw-yes-gps)
+            do_flash_sw-yes-gps
+                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 with GPS firmware completed" 8 60
+            ;;
+           md380-db-eu)
+            do_flash_db-eu
+                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 user database according to EU privacy laws completed" 8 60
+            ;;
+           md380-db-row)
+            do_flash_db-row
+                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 user database according to ROW privacy law's completed" 8 60
             ;;
  			md380-org)
-                whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016" --msgbox "Flashing MD380 with original firmware should be done using the suppliers tools." 8 60
+                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 with original firmware should be done using the suppliers tools." 8 60
             ;;
-            *)  whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016"  --msgbox "You have cancelled the MD380-tool utility ." 8 60
+            *)  whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "You have cancelled the MD380-tool utility ." 8 60
                 status=1
+                break
                 exit
             ;;
         esac
         exitstatus1=$status1
     done
 else
-	rm -rf /home/pi/tmp.file > /dev/null
-	whiptail --backtitle "MD380 DMR EXPERIMENTAL SOFTWARE ${pi_user}" --title "MD380 Basic installation - ver 1.10 dd: 06092016"  --msgbox "You have cancelled the MD380-tool utility ." 8 60
+	rm -rf $directory/tmp.file >> /dev/null
+	whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "You have cancelled the MD380-tool utility ." 8 60
+	status=1
+	
     exit
 fi
