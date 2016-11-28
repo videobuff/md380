@@ -2,18 +2,18 @@
 ##################################################################################
 ##################################################################################
 ###### SCRIPT TO FLASH A TYTERA MD380/MD390 WITH THE EXPERIMENTAL SOFTWARE  ######
-###### 	 		FROM  TRAVISGODSPEED - KK4VCZ	    		    ######
+###### 	 				FROM  TRAVISGODSPEED - KK4VCZ					    ######
 ###### 	  LOCATED AT https://github.com/travisgoodspeed/md380tools.git	    ######
-###### 		REVISION 26-11-2016   - Written by PA0ESH     	            ######
-###### 	   	You may copy, modify or change this script as you like	    ######
-######		  # Requires: whiptail					    ######
+###### 			REVISION 28-11-2016   - Written by PA0ESH     	            ######
+###### 	   		You may copy, modify or change this script as you like	    ######
+######					# Requires: whiptail								######
 ##################################################################################
 ##################################################################################
 #
 
 directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 script_rev="3.0"
-script_date="27-11-2016"
+script_date="28-11-2016"
 script_ver_file="version-md380.txt"
 script_file="flash-md380.sh"
 pi_user_own=$(whoami)
@@ -73,7 +73,7 @@ if [ "$rep1" != "${rep2}" ]
 		then
  		echo "Installing package $pack_name"
 		echo "---------------------------------------------"
-		apt-get install $packname
+		apt-get install $pack_name
 else
 	 echo " ${pack_name} already installed."		
 fi
@@ -178,7 +178,7 @@ else
 	make clean
 	##### turn on radio in DFU mode to begin firmware update with USB cable ######
 	make updatedb flashdb
-	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "The MD380 has been loaded with the DMR user database according to R.O.T.W laws \nYour own codeplug remains unchanged.\n Hit OK to continue." 8 78
+	whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "The MD380 has been loaded with the DMR user database without EU privacy laws. \nYour own codeplug remains unchanged.\n Hit OK to continue." 8 78
 fi
 }
 
@@ -246,6 +246,104 @@ else
 fi
 }
 
+
+
+function about_info {
+
+
+info="The patched firmware is known to work on the following devices:\n \
+\n \
+The D-Version (NoGPS) for radios without GPS\n \
+
+
+Tytera/TYT MD380\n \
+Tytera/TYT MD390\n \
+Retevis RT3\n \
+\n \
+The S-Version (GPS) for radios with GPS\n \
+Tytera/TYT MD380\n \
+Tytera/TYT MD390\n \
+Retevis RT8\n \
+Both types of vocoder (old and new vocoder radios) are supported.\n\
+\n \
+The DMR MARC user's database required a 16 MByte SPI Flash memory chip.\nIn some VHF Radios is only an 1 MByte SPI Flash installed."
+
+
+whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "${info}"  24 80
+
+}
+
+
+function special_menu {
+    sstatus="0"
+    while [ "$sstatus" -eq 0 ]  
+    do
+        choice=$(whiptail --backtitle "${pi_user}" --title "$M_title" --menu "\nMake a choice" 16 78 5 \
+        "make clean" "Clean up everything." \
+        "make flashD03" "Flash original FW for MD380 with new vocoder." \
+        "make flashD02" "Start backing up the first application." \
+        "make dist" "Create a windows installation package" \
+        "spiflashid " "To check the type / size of SPI-Flash." 3>&2 2>&1 1>&3) 
+         
+        # Change to lower case and remove spaces.
+        option=$(echo $choice | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
+        case "${option}" in
+            makeclean) 
+            clear
+            cd $directory/md380tools
+            git pull
+            make clean
+            cd $directory
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "Cleaning has been completed"  24 80        
+            ;;
+            makeflashd03)
+               clear
+            git pull
+            cd $directory/md380tools
+            make flash_original_D03
+            cd $directory
+               info1="A windows installer has been created\n \
+				You can find ut in the directory"
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "${info1}"  24 80        
+            ;;
+            makeflashd02)
+                git pull
+			    clear
+                cd $directory/md380tools
+                make flash_original_D02
+                cd $directory
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "MD380 been flashed with original oldest FW."  24 80        
+            ;;
+            makedist)
+	            git pull            
+                clear
+                cd $directory/md380tools
+                rm -rf *.bin
+                rmdir --ignore-fail-on-non-empty /home/pi/md380tools/dist/*
+                make dist
+                cd $directory
+          	info1="A windows installer has been created\n \
+ You can find it in the directory $directory/md380tools/dist as a zipfile. \
+ Copy this zip file to your windows c, unpack it and run the installer called upgrade.exe. \
+ Then select the appropriate firmware (bin file)"
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "${info1}"  16 80        
+            ;;
+            spiflashid)
+                clear
+                cd $directory/md380tools
+                md380-tool spiflashid 
+                cd $directory
+                
+            ;;
+            *) whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "You cancelled or have finished the specials menu." 8 78
+                sstatus=1
+            ;;
+        esac
+        special=$sstatus
+    done
+
+}
+
 # main part of the script
 
 clear
@@ -292,6 +390,8 @@ if [ $exitstatus = 0 ]; then
 		"MD380-SW-YES-GPS" "flash software MD380 with GPS" \
 		"MD380-DB-EU" "flash user database EU privacy law" \
 	    "MD380-DB-ROW" "flash user database ROW privacylaw" \
+	    "Specials" "For the expierenced user. Be carefull" \
+		"About" "info on flashing MD380/MD390"  \
 		"MD380-ORG" "info on flashing original firmware"  3>&2 2>&1 1>&3)
 
         # Change to lower case and remove spaces.
@@ -329,8 +429,14 @@ if [ $exitstatus = 0 ]; then
             do_flash_db-row
                 whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 user database according to ROW privacy law's completed" 8 60
             ;;
+           specials)
+            special_menu
+            ;;
  			md380-org)
                 whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 with original firmware should be done using the suppliers tools." 8 60
+            ;;
+ 			about)
+                about_info
             ;;
             *)  whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "You have cancelled the MD380-tool utility ." 8 60
                 status=1
