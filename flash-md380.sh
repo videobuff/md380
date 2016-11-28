@@ -73,7 +73,7 @@ if [ "$rep1" != "${rep2}" ]
 		then
  		echo "Installing package $pack_name"
 		echo "---------------------------------------------"
-		apt-get install $pack_name
+		apt-get -y install $pack_name
 else
 	 echo " ${pack_name} already installed."		
 fi
