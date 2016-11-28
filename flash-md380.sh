@@ -80,9 +80,6 @@ fi
 
 }
 
-
-
-
 function check_distro {
 result=$(dpkg --status tzdata|grep Provides|cut -f2 -d'-')
 distro=$(echo $result | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
@@ -90,19 +87,19 @@ distro=$(echo $result | tr '[:upper:]' '[:lower:]' | sed 's/ //g')
 if [ ${distro} == "jessie" ]; then
 	whiptail --backtitle "${pi_user}" --title "Linux Debian - ${distro} for Raspberry" --msgbox "Testing availability or installing the pre-requisite packages\n\
 	required for this distro : ${distro}\n\
-	This may take some time, so please be patient and watch out for errors." 8 60
+This may take some time, so please be patient and watch out for errors." 12 60
 	test_jessie
 elif  [ ${distro} == "xenial" ]; then
 	whiptail --backtitle "${pi_user}" --title "Linux Ubuntu - ${distro}" --msgbox "Testing availability or installing the pre-requisite packages\n\
-	This may take some time, so please be patient and watch out for errors." 8 60
+This may take some time, so please be patient and watch out for errors." 12 60
 	test_xenal
 elif  [ ${distro} == "stretch" ]; then
 	whiptail --backtitle "${pi_user}" --title "Linux Debian - ${distro}" --msgbox "Testing availability or installing the pre-requisite packages\n\
-	This may take some time, so please be patient and watch out for errors." 8 60
+This may take some time, so please be patient and watch out for errors." 12 60
 	test_stretch
 	
 else
-	whiptail --backtitle "${pi_user} - not suitable" --title "Linux distro - ${distro}" --msgbox "The OS on this machine is not (yet) suitable for the MD380/390 tools..." 8 60
+	whiptail --backtitle "${pi_user} - not suitable" --title "Linux distro - ${distro}" --msgbox "The OS on this machine is not (yet) suitable for the MD380/390 tools..." 12 60
 exit 1
 fi
 sleep 2
@@ -116,7 +113,7 @@ echo "Installing the MD380 python toolkit"
 echo -e "\t${YelRed} This may take a while ${Reset}"
 if [ ! -d $directory/md380tools ] ; then
 #echo "Directory does not exist"
-			whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " This may take some time, so relax.\n Hit OK to continue." 8 45
+			whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Now the source code is being downloaded and compiled.\nThis may take some time, so relax.\nHit OK to continue." 12 60
 			git clone https://github.com/travisgoodspeed/md380tools
 			if [ ! -f /etc/udev/rules.d/99-md380.rules ]
 			then
@@ -124,12 +121,10 @@ if [ ! -d $directory/md380tools ] ; then
 			fi
 			#cd $directory/md380tools
 			make clean
-			make all
-			echo "geklooned"
-			pause
+			make all			
 else
 #echo "Directory exists"
-			whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox " This may take some time, so relax.\n Hit OK to continue." 8 45
+			whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Now the source code is being updated and compiled.\nThis may take some time, so relax.\nHit OK to continue." 12 60
 			cd $directory/md380tools
 			git pull
 			if [ ! -f /etc/udev/rules.d/99-md380.rules ]
@@ -140,7 +135,6 @@ else
 			cd $directory/md380tools
 			make clean
 			make all
-			echo "ge-updated"
 fi
 
 #echo -e "${Green} Installation or updating git repository md380tools completed ${Reset}"
@@ -223,7 +217,7 @@ fi
 
 function check_update_script {
 rm -rf ${script_ver_file}
-wget http://www.pa0esh.nl/svn/md380/$script_ver_file >> /dev/null
+wget -N  http://www.pa0esh.nl/svn/md380/$script_ver_file >> /dev/null
 #sudo chmod +x $script_ver_file
 #sudo sed -i -e 's/\r$//' $script_ver_file
 read -d $'\x04' name < "$script_ver_file" 
@@ -237,7 +231,7 @@ else
     	echo "You choose to update the script. It will restart it after the download is completed -  $?."
     	#sudo chmod -x $script_ver_file
     	sudo rm -rf $script_file
-        sudo wget http://www.pa0esh.nl/svn/md380/$script_file >> /dev/null
+        sudo wget -N  http://www.pa0esh.nl/svn/md380/$script_file >> /dev/null
 		sudo chmod +x *.sh
 		sed -i -e 's/\r$//' $script_file
 		sync
@@ -294,7 +288,7 @@ function special_menu {
             git pull
             make clean
             cd $directory
-			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "Cleaning has been completed"  24 80        
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "Cleaning has been completed"  24 78        
             ;;
             makeflashd03)
                clear
@@ -304,7 +298,7 @@ function special_menu {
             cd $directory
                info1="A windows installer has been created\n \
 				You can find ut in the directory"
-			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "${info1}"  24 80        
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "${info1}"  24 78        
             ;;
             makeflashd02)
                 git pull
@@ -312,7 +306,7 @@ function special_menu {
                 cd $directory/md380tools
                 make flash_original_D02
                 cd $directory
-			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "MD380 been flashed with original oldest FW."  24 80        
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "MD380 been flashed with original oldest FW."  24 78        
             ;;
             makedist)
 	            git pull            
@@ -326,7 +320,7 @@ function special_menu {
  You can find it in the directory $directory/md380tools/dist as a zipfile. \
  Copy this zip file to your windows c, unpack it and run the installer called upgrade.exe. \
  Then select the appropriate firmware (bin file)"
-			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "${info1}"  16 80        
+			whiptail --backtitle "${pi_user}" --title "$M_title"  --msgbox "${info1}"  16 78        
             ;;
             spiflashid)
                 clear
@@ -382,7 +376,7 @@ if [ $exitstatus = 0 ]; then
     status="0"
     while [ "$status" -eq 0 ]
     do
-        choice=$(whiptail --backtitle "${pi_user}" --title "$M_title" --menu "Make a choice" 22 80 14 \
+        choice=$(whiptail --backtitle "${pi_user}" --title "$M_title" --menu "Make a choice" 22 78 14 \
 		"Check script" "Check for a new version of this script" \
 		"Linux Update" "Update the Operating System on this machine" \
 		"MD380-tools" "MD380 tools 1st time installation." \
@@ -411,23 +405,20 @@ if [ $exitstatus = 0 ]; then
             ;;
             md380-tools)
             MD380-tools_install
-                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "MD380 tools installed for 1st time or updated" 8 60
+            whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "MD380 tools have either been installed for 1st time or were updated" 12 60
             ;;
             md380-sw-no-gps)
             do_flash_sw-no-gps
-                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 with NO GPS firmware completed" 8 60
             ;;
             md380-sw-yes-gps)
             do_flash_sw-yes-gps
-                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 with GPS firmware completed" 8 60
             ;;
            md380-db-eu)
             do_flash_db-eu
-                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 user database according to EU privacy laws completed" 8 60
             ;;
            md380-db-row)
-            do_flash_db-row
-                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 user database according to ROW privacy law's completed" 8 60
+            #do_flash_db-row
+                whiptail --backtitle "${pi_user}" --title "$M_title" --msgbox "Flashing MD380 user database according to ROW privacy law's no longer possible\nAs per 28.11.2016, DMR-MARC no longer provides privavcy sensitive data\nPlease carry out the EU option." 12 60
             ;;
            specials)
             special_menu
