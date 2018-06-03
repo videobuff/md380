@@ -2,7 +2,7 @@
 ##################################################################################
 ##################################################################################
 ###### SCRIPT TO FLASH A TYTERA MD380/MD390 WITH THE EXPERIMENTAL SOFTWARE  ######
-######    FROM  TRAVISGODSPEED - KK4VCZ					    ######
+######               FROM  TRAVISGODSPEED - KK4VCZ                          ######
 ###### 	  LOCATED AT https://github.com/travisgoodspeed/md380tools.git	    ######
 ###### 		REVISION 03-06-2018   - Written by PA0ESH     	            ######
 ###### 	   	You may copy, modify or change this script as you like	    ######
