@@ -3,6 +3,6 @@ Script to run the installation of md380-tools from Travis Godspeed elsewhere on 
 
 This script automates the installation of the md380-toolbox on a rapsberry as well as an ubuntu 16.04 machine.
 The only pre-rquistie is that you know how to use ssh to get to your computer
-Information in dutch can be found here : http://www.pa0esh.nl/wordpress/handleiding-experimentele-softwarefirmware-flashen-op-md380/
+Information in dutch can be found here : http://www.pa0esh.com
 
 
